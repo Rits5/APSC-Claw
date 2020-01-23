@@ -14,13 +14,10 @@
 
 #define SERVO_PIN 6
 
-#define TRUE 1
-#define FALSE 0
-
 #define OPEN_POS 0
-#define CLOSE_POS 150
+#define CLOSE_POS 180
 #define GRAB_THRESHOLD 10
-#define DROP_THRESHOLD 15
+#define DROP_THRESHOLD 10
 
 NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE); // initialize NewPing
 
@@ -48,108 +45,151 @@ void setup(){
   servo.attach(SERVO_PIN); //attaches the servo on pin 6 to the servo object
 }
 
-bool reset = FALSE;
-bool doneGrabbing = FALSE;
-bool stillGrabbing = TRUE;
+//bool reset = false;
+bool doneGrabbing = false;
+bool stillGrabbing = true;
+bool readyToDrop = false;
+bool getBackUp = false;
 
-void moveServo(int speed, int position, bool open);
-int grab(int dist, bool resetClaw);
-int release(int dist, bool resetClaw);
+void moveServo(int speed, int position);
+
+//int grab(int dist, bool resetClaw);
+//int drop(int dist, bool resetClaw);
+void timedClaw(int dist);
+void sensorClaw(int dist);
 
 void loop(){
-
+  
   delay(100); 
-    
-  int dist = sonar.ping_cm(); // read the sonar sensor, using a variable
+  
+  int count = 0;
+  for(count = 0; count < 5; count++){ //initialize sonar sensor
+    int dist = sonar.ping_cm(); 
+    delay(100);
+  }
 
+  int dist = sonar.ping_cm(); 
   Serial.print("Ping: "); //print “Ping:" on the computer display
   Serial.print(dist); //print the value of the variable next
   Serial.println("cm"); //print "cm" after that, then go to next line
 
+  sensorClaw(dist);
+
 //  if(DISTANCE_IN_CM < 6){
-//    moveServo(5, 150, TRUE);
+//    moveServo(5, 150, true);
 //  }
 //  else{
-//    moveServo(5, 0, FALSE);
+//    moveServo(5, 0, false);
 //  }
 
-  if(stillGrabbing == TRUE){
-    stillGrabbing = grab(dist, reset);
-  }
-  else{
-    stillGrabbing = release(dist, reset);
-  }
-  
+//  if(stillGrabbing == true){
+//    stillGrabbing = grab(dist, reset);
+//  }
+//  else{
+//    stillGrabbing = drop(dist, reset);
+//  }
 
+//  if(reset == false){
+//    grab(dist, reset);
+//  }
+//  if(reset == true){
+//    drop(dist, reset);
+//  }
 
-  //--------------------------- JOYSTICK --------------------------------------------------
-
-//  delay(50);
-//
-//  int joystickXVal = analogRead(XJOY_PIN) ; //read joystick input on pin A1.  Will return a value between 0 and 1023.
-//
-//  int servoVal = map(joystickXVal, 0, 1023, 0, 180) ;  // changes the value to a raneg of 0 to 180.   See "map" function for further details.
-//
-//  Serial.print(joystickXVal); //print the value fram A1
-//
-//  Serial.println(" = input from joystick"); //print "=input from joystick" next to the value
-//
-//  Serial.print(servoVal); //print a from A1 calculated, scaled value
-//
-//  Serial.println(" = output to servo"); //print "=output to servo" next to the value
-//
-//  Serial.println() ;
-//
-//  servo.write(servoVal); //write the calculated value to the servo
 
 }
 
-void moveServo(int speed, int position, bool open){
+void moveServo(int speed, int position){
 
   int currentPosition = servo.read();
   int pos;
   
-  if(open == TRUE){
+  if(currentPosition < position){
     for (pos = currentPosition; pos <= position; pos += speed) {
       servo.write(pos);              
-      delay(20);                       
+      delay(20);   
+      Serial.println(servo.read());                    
     }
   }
   
   else{
     for (pos = currentPosition; pos >= position; pos -= speed) { 
       servo.write(pos);             
-      delay(20);                       
+      delay(20);  
+      Serial.println(servo.read());                     
     }
   }
 }
 
+
+void timedClaw(int dist){  
+  if(dist < GRAB_THRESHOLD){
+    delay(2000);    
+    moveServo(5, OPEN_POS);
+    delay(5000);
+    moveServo(5, CLOSE_POS);
+  }
+}
+
+void sensorClaw(int dist){
+  
+   if(dist < GRAB_THRESHOLD && readyToDrop == false && doneGrabbing == false && getBackUp == false){
+    Serial.println("");
+    Serial.println("Grabbing objects"); 
+    delay(2000);    
+    moveServo(5, CLOSE_POS);
+    doneGrabbing = true; 
+    Serial.println("Grabbed objects");     
+   }
+   if(doneGrabbing == true){
+     if(dist > GRAB_THRESHOLD){
+      readyToDrop = true;
+     }
+     if(readyToDrop == true && dist < DROP_THRESHOLD){
+      Serial.println("");
+      Serial.println("Dropping objects"); 
+      moveServo(5, OPEN_POS);
+      readyToDrop = false;
+      doneGrabbing = false;
+      getBackUp = true;
+      Serial.println("Dropped objects"); 
+     }
+   }
+
+   if(dist > DROP_THRESHOLD){
+    getBackUp = false;
+   }
+}
+
+/*
 int grab(int dist, bool resetClaw){
-  if(resetClaw == FALSE){
-    if(doneGrabbing == FALSE && dist < GRAB_THRESHOLD){
+  if(resetClaw == false  && dist < GRAB_THRESHOLD){
+    if(doneGrabbing == false){
       delay(2000);
-      moveServo(5, CLOSE_POS, FALSE);
-      doneGrabbing == TRUE;
+      Serial.println("got in the grab function");
+      moveServo(5, CLOSE_POS);
+      doneGrabbing == true;
     }
     return 1;
   }
   else{
-    reset == TRUE;
+    reset == true;
     return 0;
   } 
 }
 
-int release(int dist, bool resetClaw){
-  if(resetClaw == TRUE){
-    if(doneGrabbing == TRUE && dist < DROP_THRESHOLD){
+int drop(int dist, bool resetClaw){
+  if(resetClaw == true  && dist < DROP_THRESHOLD){
+    if(doneGrabbing == true){
       delay(2000);
-      moveServo(5, OPEN_POS, TRUE);
-      doneGrabbing == FALSE;
+      moveServo(5, OPEN_POS);
+      doneGrabbing == false;
     }
     return 0;
   }
   else{
-    reset == FALSE;
+    reset == false;
     return 1;
   }
 }
+*/
