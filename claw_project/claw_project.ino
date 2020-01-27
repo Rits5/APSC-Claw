@@ -19,6 +19,9 @@
 #define GRAB_THRESHOLD 10
 #define DROP_THRESHOLD 10
 
+#define H1
+#define H2
+
 NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE); // initialize NewPing
 
 Servo servo; //create servo object to control a servo
@@ -96,19 +99,29 @@ void loop(){
 //    drop(dist, reset);
 //  }
 
-
 }
 
 void moveServo(int speed, int position){
 
   int currentPosition = servo.read();
   int pos;
+  //int prevPos = currentPosition;
+  //int newPos = currentPosition;
   
   if(currentPosition < position){
     for (pos = currentPosition; pos <= position; pos += speed) {
+      //prevPos = newPos;
       servo.write(pos);              
       delay(20);   
-      Serial.println(servo.read());                    
+      newPos = servo.read();
+      Serial.println(servo.read());    
+
+//       if(abs(newPos - prevPos) < speed && pos != currentPosition){
+//        pos = servo.read();
+//        servo.write(servo.read());
+//        delay(50);
+//        break;
+//       }
     }
   }
   
@@ -159,6 +172,20 @@ void sensorClaw(int dist){
    if(dist > DROP_THRESHOLD){
     getBackUp = false;
    }
+}
+
+bool trueReading(int dist){
+  int reading;
+  if(dist < 2){
+    for(int count = 0; count < 5; count++){
+      reading += sonar.ping_cm(); 
+      delay(50);
+    }
+    if(reading >= dist*count){
+      return false;
+    }
+ }
+ return true;  
 }
 
 /*
