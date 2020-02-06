@@ -7,14 +7,19 @@
 #define ECHO_PIN 11 // sonar echo pint will be attached to Arduino pin 11
 #define GROUND_PIN 10
 #define MAX_DISTANCE 200 // maximum distance set to 200 cm
-#define FAILSAFE 10000
+#define FAILSAFE 30000
 
 #define GROUND_JOY_PIN A3 //joystick ground pin will connect to Arduino analog pin A3  
 #define VOUT_JOY_PIN A2 //joystick +5 V pin will connect to Arduino analog pin A2  
 #define XJOY_PIN A1 //  X axis reading from joystick will go into analog pin A1
+bool doneGrabbing = false;
+bool stillGrabbing = true;
+bool readyToDrop = false;
+bool getBackUp = false;
 
 #define SERVO_PIN 6
-#define LED 2
+#define LED 3
+#define LED_GROUND 4
 
 #define OPEN_POS 0
 #define CLOSE_POS 180
@@ -25,10 +30,6 @@ NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE); // initialize NewPing
 
 Servo servo; //create servo object to control a servo
 
-bool doneGrabbing = false;
-bool stillGrabbing = true;
-bool readyToDrop = false;
-bool getBackUp = false;
 double prevDist = 50.0; //initialize to a random value
 long long unsigned int failsafe = 0;
 
@@ -41,7 +42,7 @@ double weightedAvg(double dist);
 
 void setup(){
 
-  Serial. begin(9600);  // set data transmission rate to communicate with computer
+  Serial.begin(9600);  // set data transmission rate to communicate with computer
 
   pinMode(ECHO_PIN, INPUT);    
   pinMode(TRIGGER_PIN, OUTPUT);
@@ -52,6 +53,7 @@ void setup(){
   digitalWrite(VCC_PIN, HIGH) ; // tell pin 13 to output HIGH (+5V)
   pinMode(8,INPUT_PULLUP); //pin 8 forced to HIGH when there is no external input
   pinMode(LED, OUTPUT);
+  pinMode(LED_GROUND, OUTPUT);
 
   pinMode(VOUT_JOY_PIN, OUTPUT); //pin A3 shall be used as output
   pinMode(GROUND_JOY_PIN, OUTPUT) ; //pin A2 shall be used as output
@@ -60,7 +62,8 @@ void setup(){
   
   servo.attach(SERVO_PIN); //attaches the servo on pin 6 to the servo object
   moveServo(5, OPEN_POS);
-  digitalWrite(LED, HIGH); 
+  digitalWrite(LED, LOW);
+  digitalWrite(LED_GROUND, LOW);
 }
 
 void loop(){
@@ -77,7 +80,7 @@ void loop(){
   Serial.println(finalDist);
   
   sensorClaw(finalDist);
-  digitalWrite(LED, HIGH); 
+  //digitalWrite(LED, HIGH); 
  
 }
 
@@ -119,7 +122,7 @@ void sensorClaw(double dist){
    if(dist < GRAB_THRESHOLD && readyToDrop == false && doneGrabbing == false && getBackUp == false){
     Serial.println("");
     Serial.println("Grabbing objects"); 
-    delay(500);    
+    delay(1000);    
     moveServo(4, CLOSE_POS);
     doneGrabbing = true; 
     Serial.println("Grabbed objects");
@@ -138,7 +141,7 @@ void sensorClaw(double dist){
       doneGrabbing = false;
       getBackUp = true;
       Serial.println("Dropped objects"); 
-      digitalWrite(LED, HIGH); 
+      digitalWrite(LED, LOW); 
      }
    }
 
@@ -148,6 +151,8 @@ void sensorClaw(double dist){
 }
 
 double weightedAvg(double dist){
-  prevDist = prevDist * 0.9 + dist * 0.1;
+  if(dist != 0){
+   prevDist = prevDist * 0.9 + dist * 0.1;
+  }
   return prevDist; 
 }
