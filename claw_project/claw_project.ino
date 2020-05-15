@@ -7,7 +7,7 @@
 #define ECHO_PIN 11 // sonar echo pint will be attached to Arduino pin 11
 #define GROUND_PIN 10
 #define MAX_DISTANCE 200 // maximum distance set to 200 cm
-#define FAILSAFE 30000
+#define FAILSAFE 120000
 
 #define GROUND_JOY_PIN A3 //joystick ground pin will connect to Arduino analog pin A3  
 #define VOUT_JOY_PIN A2 //joystick +5 V pin will connect to Arduino analog pin A2  
@@ -80,8 +80,6 @@ void loop(){
   Serial.println(finalDist);
   
   sensorClaw(finalDist);
-  //digitalWrite(LED, HIGH); 
- 
 }
 
 void moveServo(int speed, int position){
