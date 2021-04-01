@@ -1,5 +1,4 @@
-# APSC-Claw-Project
-Claw project code for APSC 101 
+# Autonomous Claw
 
  ### Table of Contents
  * [Move Servo](#Move-Servo)
